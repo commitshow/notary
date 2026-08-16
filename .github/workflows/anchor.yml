@@ -1,0 +1,42 @@
+# Pull last night's fingerprint from Legit.Show and commit it here.
+#
+# The point of this repository is that the record sits somewhere Legit.Show cannot quietly
+# rewrite, so the job runs on GitHub's schedule and reads a public endpoint — no key, no
+# push from our servers. If Legit.Show stopped publishing, this file simply stops growing,
+# which is itself visible.
+name: anchor
+on:
+  schedule:
+    - cron: '40 4 * * *'   # 04:40 UTC, after the 03:15 UTC snapshot
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch and append
+        run: |
+          set -euo pipefail
+          curl -sS --fail --max-time 30 \
+            "https://tekemubwihsjdzittoqf.supabase.co/rest/v1/merkle_snapshots?select=day,spec,algo,leaf_count,root&order=day.asc" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" > /tmp/snap.json
+          python3 - <<'PY'
+          import json
+          rows = json.load(open('/tmp/snap.json'))
+          out = ['date        spec  algo    leaves  root']
+          for r in rows:
+              out.append(f"{r['day']}  {r['spec']}  {r['algo']}  {r['leaf_count']}  {r['root']}")
+          open('roots.txt','w').write('\n'.join(out) + '\n')
+          print(f'{len(rows)} days')
+          PY
+      - name: Commit if changed
+        run: |
+          git config user.name  "Legit.Show notary"
+          git config user.email "notifications@legit.show"
+          if git diff --quiet roots.txt; then echo "no new day"; exit 0; fi
+          git add roots.txt
+          git commit -m "Fingerprints through $(date -u +%Y-%m-%d)"
+          git push
