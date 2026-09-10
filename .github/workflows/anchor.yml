@@ -1,5 +1,9 @@
 # Pull last night's fingerprint from Legit.Show and commit it here.
 #
+# This is the second of two independent copies. The primary is hans1329/notary. Two
+# accounts commit the same fingerprint separately, so one of them being locked — which is
+# what silenced the record for nineteen days in August — stops being able to break it.
+#
 # The point of this repository is that the record sits somewhere Legit.Show cannot quietly
 # rewrite, so the job runs on GitHub's schedule and reads a public endpoint — no key, no
 # push from our servers. If Legit.Show stopped publishing, this file simply stops growing,
@@ -7,7 +11,7 @@
 name: anchor
 on:
   schedule:
-    - cron: '40 4 * * *'   # 04:40 UTC, after the 03:15 UTC snapshot
+    - cron: '55 4 * * *'   # 04:55 UTC · the primary copy runs at 04:40, this one after it
   workflow_dispatch:
 permissions:
   contents: write
